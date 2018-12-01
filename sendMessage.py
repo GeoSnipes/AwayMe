@@ -11,7 +11,7 @@ def sendMsg(message, number=CREDENTIALS.AWS_SNS, *args, **kwargs):
         TopicArn=number,
         Message='Home has detected movement.\n\nLink:\n' + message
     )
-    with open('message-log', 'a') as fin:z
+    with open('message-log', 'a') as fin:
         timenow = time.strftime('%b-%d %H-%M', time.localtime(time.time()))
         fin.write('{0}::{1}\n'.format(timenow, response))
 
