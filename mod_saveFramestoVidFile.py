@@ -55,29 +55,30 @@ class Store_Video(Thread):
             if frame is None:
                 continue
             out.write(frame)
-            imshow('Laptop', frame)
-            waitKey(1)
+
+            # imshow('Laptop', frame)
+            # waitKey(1)
 
         out.release()
         destroyAllWindows()
 
         if self.exit_Videoflag == 2:
             self.upload_to_s3(videoname)
-            self.send_sms_notification()
+            self.send_sms_notification(videoname)
         elif self.exit_Videoflag == 0:
             print('removing ' + videoname)
             remove(videoname)
 
         print(self.name, 'thread closing.')
 
-    def upload_to_s3(self, videoname):
+    def upload_to_s3(self, vidname):
         # upload to s3
         print('uploading to s3')
         s3 = boto3.client('s3', config=Config(s3={'addressing_style': 'path'}))
-        s3.upload_file(videoname, CREDENTIALS.S3_BUCKET_NAME, "video_history/" + videoname)
+        s3.upload_file(vidname, CREDENTIALS.S3_BUCKET_NAME, "video_history/" + vidname)
 
-    def send_sms_notification(self):
-        awsSNS = Thread(target=sendMessage.sendMsg, args=('testmsg', CREDENTIALS.AWS_SNS))
+    def send_sms_notification(self, vidname):
+        awsSNS = Thread(target=sendMessage.sendMsg, args=(vidname, CREDENTIALS.AWS_SNS))
         awsSNS.start()
         awsSNS.join()
 
