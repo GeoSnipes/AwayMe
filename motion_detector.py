@@ -5,7 +5,7 @@ import mod_getFramesFromCam
 import aws_rekog
 import CREDENTIALS
 
-import socket
+# import socket
 import cv2
 import imutils
 import numpy
@@ -29,6 +29,8 @@ getSource = False
 saveVideo = False
 
 awsFrameResponse = []
+
+last_rekog_time = int(time.time())
 if getSource:
     # get frames over the internet
     stream = mod_getFramesFromCam.FrameFromSocket('Socket Get Frames', getCamFramesQueue, getCamFramesQueueLock)
@@ -62,10 +64,10 @@ while True:
             # time.sleep(1)
             continue
 
-        frameBackup = numpy.copy(frame)
-
         if frame is None:
             continue
+
+        frameBackup = numpy.copy(frame)
 
         # frame = frame if args.get("video", None) is None else frame[1]
         text = "Unoccupied"
@@ -123,19 +125,6 @@ while True:
                 alreadyRecording = False
                 saveVideo = False
 
-        if sendFrame and not alreadySent:
-            alreadySent = True
-
-            if False:
-                processFrameFileName = 'Process ' + time.strftime('%Y-%b-%d %H-%M', time.localtime(timeFound)) + '.jpg'
-                cv2.imwrite(processFrameFileName, frameBackup)
-                # AWS_process_frame_Thread = threading.Thread(target = send_framev1.send_frame_for_process, args = (processFrameFileName, awsFrameResponse, lock))
-                # AWS_process_frame_Thread.start()
-            else:
-                AWS_process_frame_Thread = threading.Thread(target=aws_rekog.get_imagelabels,
-                                                            args=(frameBackup, awsFrameResponse, lock))
-                AWS_process_frame_Thread.start()
-
         # draw the text and timestamp on the frame
         cv2.putText(frame, "Room Status: {}".format(text), (10, 20),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
@@ -143,36 +132,60 @@ while True:
                     (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
 
         # show the frame and record if the user presses a key
-        # cv2.imshow("Security Feed", frame)
+        cv2.imshow("Security Feed", frame)
         # cv2.imshow("Thresh", thresh)
         # cv2.imshow("Frame Delta", frameDelta)
-        # if cv2.waitKey(10) == ord('q'):
-        #     break
-        try:
-            if not AWS_process_frame_Thread.isAlive():
-                if len(awsFrameResponse) == 0:
-                    continue
+        if cv2.waitKey(10) == ord('q'):
+            break
 
-                awsFrameRes = awsFrameResponse
+        # without this, code calls AWS rekog a lot in a short period of time
+        # this helps to limit it to once every second
+        if int(time.time()) > last_rekog_time + 1:
+            # print(last_rekog_time + 1, int(time.time()))
+            last_rekog_time = int(time.time())
 
-                if awsFrameRes[0] == True:
-                    if time.time() > saveVidFile.check and saveVidFile.isAlive():
-                        with saveVidFramesQueueLock:
-                            saveVidFile.check = saveVidFile.vid_end_time
-                            saveVidFile.vid_end_time += + 10
+            if sendFrame and not alreadySent:
+                alreadySent = True
 
-                    # 0: keep running until timer then delete
-                    # 1: stop now and leave file
-                    # 2: keep running until timer then save to s3
-                    if saveVidFile.exit_Videoflag < 2:
-                        saveVidFile.exit_Videoflag = 2
+                if False:
+                    # noinspection PyUnreachableCode
+                    processFrameFileName = 'Process ' + time.strftime('%Y-%b-%d %H-%M', time.localtime(timeFound)) + '.jpg'
+                    cv2.imwrite(processFrameFileName, frameBackup)
 
-                with lock:
-                    awsFrameResponse.clear()
+                    # AWS_process_frame_Thread = threading.Thread(target = send_framev1.send_frame_for_process, args = (processFrameFileName, awsFrameResponse, lock))
+                    # AWS_process_frame_Thread.start()
+                else:
+                    AWS_process_frame_Thread = threading.Thread(target=aws_rekog.get_imagelabels,
+                                                                args=(frameBackup, awsFrameResponse, lock))
+                    AWS_process_frame_Thread.start()
 
-                alreadySent = False
-        except NameError:
-            pass
+            try:
+                if not AWS_process_frame_Thread.isAlive():
+                    if len(awsFrameResponse) == 0:
+                        continue
+
+                    awsFrameRes = awsFrameResponse
+
+                    if awsFrameRes[0] == True:
+                        if time.time() > saveVidFile.check and saveVidFile.isAlive():
+                            with saveVidFramesQueueLock:
+                                saveVidFile.check = saveVidFile.vid_end_time
+                                saveVidFile.vid_end_time += + 10
+
+                        # 0: keep running until timer then delete
+                        # 1: stop now and leave file
+                        # 2: keep running until timer then save to s3
+                        if saveVidFile.exit_Videoflag < 2:
+                            saveVidFile.exit_Videoflag = 2
+
+                    with lock:
+                        awsFrameResponse.clear()
+
+                    alreadySent = False
+
+            except NameError:
+                pass
+
     except KeyboardInterrupt:
         break
 
