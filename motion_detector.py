@@ -23,19 +23,20 @@ getCamFramesQueue = queue.Queue(0)
 saveVidFramesQueueLock = threading.Lock()
 saveVidQueue = queue.Queue(0)
 
-lock =threading.Lock()
+lock = threading.Lock()
 
 getSource = False
 saveVideo = False
 
 awsFrameResponse = []
-if getSource:    
-    #get frames over the internet
+if getSource:
+    # get frames over the internet
     stream = mod_getFramesFromCam.FrameFromSocket('Socket Get Frames', getCamFramesQueue, getCamFramesQueueLock)
     stream.start()
 else:
     # get frames locally
-    capture = mod_getFramesFromCam.FramesFromSourceCam('Capture Frames from Camera', getCamFramesQueue, getCamFramesQueueLock)
+    capture = mod_getFramesFromCam.FramesFromSourceCam('Capture Frames from Camera', getCamFramesQueue,
+                                                       getCamFramesQueueLock)
     capture.start()
 
 # initialize the first frame in the video stream
@@ -66,11 +67,11 @@ while True:
         if frame is None:
             continue
 
-        #frame = frame if args.get("video", None) is None else frame[1]
+        # frame = frame if args.get("video", None) is None else frame[1]
         text = "Unoccupied"
 
         # resize the frame, convert it to grayscale, and blur it
-        #frame = imutils.resize(frame, width=500)
+        # frame = imutils.resize(frame, width=500)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
@@ -90,11 +91,10 @@ while True:
         cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cnts = cnts[0] if imutils.is_cv2() else cnts[1]
 
-        
         # loop over the contours
         for c in cnts:
             # if the contour is too small, ignore it
-            if cv2.contourArea(c) < 2000: 
+            if cv2.contourArea(c) < 2000:
                 continue
 
             # compute the bounding box for the contour, draw it on the frame,
@@ -106,12 +106,12 @@ while True:
             timeFound = time.time()
             sendFrame = True
             saveVideo = True
-        
-        
+
         if saveVideo and not alreadyRecording:
             print('Start recording thread')
             alreadyRecording = True
-            saveVidFile = mod_saveFramestoVidFile.Store_Video('Save Video', saveVidQueue, saveVidFramesQueueLock, timeFound)
+            saveVidFile = mod_saveFramestoVidFile.Store_Video('Save Video', saveVidQueue, saveVidFramesQueueLock,
+                                                              timeFound)
             saveVidFile.start()
 
         if saveVideo and alreadyRecording:
@@ -125,21 +125,22 @@ while True:
 
         if sendFrame and not alreadySent:
             alreadySent = True
-            
+
             if False:
                 processFrameFileName = 'Process ' + time.strftime('%Y-%b-%d %H-%M', time.localtime(timeFound)) + '.jpg'
                 cv2.imwrite(processFrameFileName, frameBackup)
                 # AWS_process_frame_Thread = threading.Thread(target = send_framev1.send_frame_for_process, args = (processFrameFileName, awsFrameResponse, lock))
                 # AWS_process_frame_Thread.start()
             else:
-                AWS_process_frame_Thread = threading.Thread(target = aws_rekog.get_imagelabels, args = (frameBackup, awsFrameResponse, lock))
+                AWS_process_frame_Thread = threading.Thread(target=aws_rekog.get_imagelabels,
+                                                            args=(frameBackup, awsFrameResponse, lock))
                 AWS_process_frame_Thread.start()
 
         # draw the text and timestamp on the frame
         cv2.putText(frame, "Room Status: {}".format(text), (10, 20),
-            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
         cv2.putText(frame, time.strftime('%Y-%b-%d %H:%M', time.localtime(time.time())),
-            (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
+                    (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
 
         # show the frame and record if the user presses a key
         # cv2.imshow("Security Feed", frame)
@@ -151,32 +152,29 @@ while True:
             if not AWS_process_frame_Thread.isAlive():
                 if len(awsFrameResponse) == 0:
                     continue
-                
+
                 awsFrameRes = awsFrameResponse
 
                 if awsFrameRes[0] == True:
                     if time.time() > saveVidFile.check and saveVidFile.isAlive():
                         with saveVidFramesQueueLock:
-                            saveVidFile.check =  saveVidFile.vid_end_time
+                            saveVidFile.check = saveVidFile.vid_end_time
                             saveVidFile.vid_end_time += + 10
-                    
+
                     # 0: keep running until timer then delete
                     # 1: stop now and leave file
                     # 2: keep running until timer then save to s3
-                    if saveVidFile.exit_Videoflag < 2: 
+                    if saveVidFile.exit_Videoflag < 2:
                         saveVidFile.exit_Videoflag = 2
-                
-                        
-                                 
+
                 with lock:
                     awsFrameResponse.clear()
-                
+
                 alreadySent = False
         except NameError:
-            pass 
+            pass
     except KeyboardInterrupt:
         break
-    
 
 print('Cleaning up')
 cv2.destroyAllWindows()
@@ -189,10 +187,10 @@ try:
         capture.exit_flag = 1
         capture.join()
         print('finish cam')
-    
+
     saveVidFile.exit_Videoflag = 1
     saveVidFile.join()
-    
+
     print('finish vidave')
 except Exception as e:
     print(e)
