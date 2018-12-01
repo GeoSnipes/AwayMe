@@ -5,21 +5,22 @@ import length_of_time_codeclock
 import CREDENTIALS
 import time
 
+
 def get_imagelabels(image, frameLable, lock):
     client = boto3.client('rekognition')
 
-    #convert frame from cv2 source into binary for ttransfer to aws
+    # convert frame from cv2 source into binary for ttransfer to aws
     jpg_as_text = imencode('.jpg', image)[1].tostring()
     # print('Size of image is', getsizeof(jpg_as_text)/1000, 'KB')
 
-    #aws api to implement AWS Rekognition
+    # aws api to implement AWS Rekognition
     with length_of_time_codeclock.CodeTimer('Rekog Frame'):
         response = client.detect_labels(
             Image={
-                'Bytes': jpg_as_text      
+                'Bytes': jpg_as_text
             },
             MaxLabels=10,
-            MinConfidence= 70
+            MinConfidence=70
         )
 
     # AWS return all labels meeting the minimum requirements. 
@@ -37,8 +38,10 @@ def get_imagelabels(image, frameLable, lock):
             frameLable.append(0)
     print(f"{time.strftime('%Y-%b-%d %H-%M', time.localtime(time.time()))}:\t{frameLable}")
 
+
 if __name__ == '__main__':
     import threading
+
     # import length_of_time_codeclock
 
     cap = VideoCapture(0)
