@@ -9,7 +9,7 @@ def sendMsg(message, number=CREDENTIALS.AWS_SNS, *args, **kwargs):
     awsSNS = boto3.client('sns')
     response = awsSNS.publish(
         TopicArn=number,
-        Message='Home has detected movement.\n\nLink:\n' + message
+        Message='Home has detected movement.\n\nLink:\n' + message + '\n' # + kwargs['videoname']
     )
     with open('message-log', 'a') as fin:
         timenow = time.strftime('%b-%d %H-%M', time.localtime(time.time()))
@@ -17,4 +17,4 @@ def sendMsg(message, number=CREDENTIALS.AWS_SNS, *args, **kwargs):
 
 
 if __name__ == '__main__':
-    sendMsg('Test 3', CREDENTIALS.AWS_SNS, 0, 8, 9)
+    sendMsg('Test 3', CREDENTIALS.AWS_SNS, 0, 8, 9, videoname='http.test')
