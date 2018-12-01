@@ -23,6 +23,8 @@ class FramesFromSourceCam(threading.Thread):
         cap = cv2.VideoCapture(0)
         if not cap.isOpened():
             cap.open(0)
+        for x in range(30):
+            ret, frame = cap.read()
         while not self.exit_flag:
             ret, frame = cap.read()
             if frame is None:
