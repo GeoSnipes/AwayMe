@@ -47,6 +47,9 @@ if __name__ == '__main__':
     cap = VideoCapture(0)
     retval, image = cap.read()
     cap.release()
+    if image is None:
+        print("Could not get control of camera.")
+        quit()
     imwrite('img.jpg', image)
     with length_of_time_codeclock.CodeTimer('Time AWS'):
         get_imagelabels(image, [], threading.Lock())
