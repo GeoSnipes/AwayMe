@@ -47,7 +47,6 @@ firstFrame = None
 alreadySent = False
 alreadyRecording = False
 
-waitQueueFrames = False
 # loop over the frames of the video
 while True:
     sendFrame = False
@@ -55,17 +54,11 @@ while True:
         # grab the current frame and initialize the occupied/unoccupied text
         with getCamFramesQueueLock:
             if getCamFramesQueue.empty():
-                waitQueueFrames = True
+                continue
             else:
                 frame = getCamFramesQueue.get()
-
-        if waitQueueFrames:
-            waitQueueFrames = False
-            # time.sleep(1)
-            continue
-
-        if frame is None:
-            continue
+                if frame is None:
+                    continue
 
         frameBackup = numpy.copy(frame)
 
