@@ -5,7 +5,6 @@ import length_of_time_codeclock
 import CREDENTIALS
 import time
 
-
 def get_imagelabels(image, frameLable, lock):
     client = boto3.client('rekognition')
 
@@ -20,23 +19,27 @@ def get_imagelabels(image, frameLable, lock):
                 'Bytes': jpg_as_text
             },
             MaxLabels=10,
-            MinConfidence=70
+            MinConfidence=80
         )
 
     # AWS return all labels meeting the minimum requirements. 
     # Check if the human or person laabel is present
     for label in response['Labels']:
         if label['Name'] == 'Human' or label['Name'] == 'Person':
-            # labels.append((label['Name'], round(label['Confidence'], 3)))
             print('Human/Person detected with confidence:', round(float(label['Confidence']), 3))
-            with lock:
-                frameLable.append(1)
-            break
+            if round(float(label['Confidence']), 3) >= 90:
+                with lock:
+                    frameLable.append(1)
+                break
     # If not present just return 0
     with lock:
         if len(frameLable) == 0:
             frameLable.append(0)
-    print(f"{time.strftime('%Y-%b-%d %H-%M', time.localtime(time.time()))}:\t{frameLable}")
+    # try:
+    #     print(f"{time.strftime('%Y-%b-%d %H-%M', time.localtime(time.time()))}:\t{frameLable}")
+    # except:
+    print('{0}:\t{1}'.format(time.strftime('%Y-%b-%d %H-%M', time.localtime(time.time())), frameLable))
+    
 
 
 if __name__ == '__main__':

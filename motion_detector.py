@@ -25,7 +25,7 @@ saveVidQueue = queue.Queue(0)
 
 lock = threading.Lock()
 
-getSource = False
+getSource = True
 saveVideo = False
 
 awsFrameResponse = []

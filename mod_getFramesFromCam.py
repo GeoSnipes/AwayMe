@@ -81,7 +81,10 @@ class FrameFromSocket(threading.Thread):
                         print(e)
                         continue
                 nparr = numpy.fromstring(data, numpy.uint8)
-                frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                try:
+                    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                except:
+                    continue
                 self.queueLock.acquire()
                 self.q.put(frame)
                 self.queueLock.release()
