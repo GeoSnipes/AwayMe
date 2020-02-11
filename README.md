@@ -1,4 +1,4 @@
-# HomeVideoSurveillance
+# AwayMe
 Build an surveillance system that records when human in view and notifies respective party.
 
 Note: Frames form camera is placed in a queue.
